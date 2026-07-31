@@ -1,49 +1,70 @@
-# Sistem Informasi Katalog Buku (Scraping + API dalam Satu Studi Kasus)
+# Sistem Informasi Buku — 2 Fitur CRUD Terpisah
 
-Aplikasi Streamlit dengan **satu studi kasus terpadu**: Katalog Buku.
-Bukan dua fitur yang berdiri sendiri, tapi dua sumber data yang saling melengkapi:
+Aplikasi Streamlit dengan **2 sistem CRUD yang benar-benar independen**, sesuai
+syarat tugas, dibungkus dalam 1 website dengan navigasi yang jelas:
 
-- **Web Scraping** (books.toscrape.com) -> data dasar buku: judul, harga, rating, stok
-- **API** (Open Library) -> data pelengkap buku yang sama: penulis, tahun terbit, subjek, deskripsi
+1. **Fitur 1 — CRUD Data Web Scraping**: mengambil data buku otomatis dari
+   [books.toscrape.com](https://books.toscrape.com), dikelola penuh (Create,
+   Read, Update, Delete) di halaman **📦 Data Web Scraping**.
+2. **Fitur 2 — CRUD Data API**: mencari buku lewat **Google Books API**,
+   menyimpannya sebagai koleksi pribadi (dengan status baca, rating, catatan),
+   dikelola penuh di halaman **📖 Koleksi Saya**.
 
-Kedua data ini digabung lewat relasi `book_id` dan ditampilkan sebagai **satu katalog**.
+## Struktur Halaman
+```
+🏠 Dashboard             -> ringkasan kedua fitur (jumlah data, grafik status)
+📦 Data Web Scraping     -> FITUR 1: scrape + CRUD penuh
+🔍 Cari Buku (API)       -> FITUR 2a: cari via Google Books API + tombol simpan
+📖 Koleksi Saya          -> FITUR 2b: CRUD penuh atas buku yang disimpan
+ℹ️ Tentang               -> penjelasan proyek & tech stack
+```
 
 ## Tech Stack
 - **Bahasa**: Python 3
 - **Framework**: Streamlit
-- **Database**: SQLite
+- **Database**: SQLite (2 tabel independen: `scraped_books`, `koleksi_buku`)
 - **Scraping**: requests + BeautifulSoup4
-- **API Client**: requests (Open Library Search API, gratis, tanpa API key)
+- **API**: Google Books API (gratis, tanpa API key)
 
 ## Struktur File
 ```
-app.py          -> entry point Streamlit, satu halaman katalog terpadu
-db.py           -> koneksi database & seluruh fungsi CRUD (2 tabel + join)
-scraper.py      -> scraping books.toscrape.com -> tabel `books`
-api_client.py   -> enrichment dari Open Library -> tabel `book_enrichment`
+app.py          -> semua UI, 5 halaman via sidebar
+db.py           -> koneksi database & CRUD kedua fitur + statistik dashboard
+scraper.py      -> Fitur 1: scraping books.toscrape.com
+api_client.py   -> Fitur 2: pencarian Google Books API
 requirements.txt-> daftar dependency
 ```
 
-## Rancangan Database (relasional, 1 entitas: Buku)
+## Rancangan Database
 ```
-books                          book_enrichment
+scraped_books (Fitur 1)        koleksi_buku (Fitur 2)
 ├── id (PK)                    ├── id (PK)
-├── title                      ├── book_id (FK -> books.id)
-├── price                      ├── author
-├── rating                     ├── first_publish_year
-├── availability               ├── subjects
-├── source_url                 ├── description
-└── scraped_at                 └── fetched_at
+├── title                      ├── title
+├── price                      ├── authors
+├── rating                     ├── published_year
+├── availability                ├── isbn
+├── source_url                 ├── cover_url
+└── scraped_at                 ├── description
+                                ├── status_baca
+                                ├── rating_pribadi
+                                ├── catatan_pribadi
+                                └── added_at
 ```
-- 1 baris `books` <-> 0 atau 1 baris `book_enrichment`
-- Hapus buku di `books` otomatis menghapus data pelengkapnya (cascade manual di `db.delete_book`)
-- `db.get_catalog_view()` melakukan LEFT JOIN kedua tabel untuk ditampilkan sebagai satu katalog
+Kedua tabel ini **independen** — tidak ada foreign key di antara keduanya,
+karena masing-masing memang harus berdiri sebagai sistem CRUD tersendiri.
 
 ## Alur Logika Program
-1. User klik **"Scrape Buku Baru"** -> `scraper.py` mengambil data dari books.toscrape.com -> disimpan ke tabel `books`
-2. User pilih salah satu buku di katalog -> klik **"Ambil Detail dari API"** -> `api_client.py` mencari judul yang sama di Open Library -> hasilnya disimpan ke `book_enrichment` dengan `book_id` yang sesuai
-3. Tabel katalog di halaman utama menampilkan **gabungan** kedua tabel (join), sehingga terlihat sebagai satu data buku yang utuh
-4. Semua field (baik dari scraping maupun API) bisa di-**Update** dan di-**Delete** langsung dari panel "Detail & Kelola Buku"
+
+**Fitur 1 (Scraping):**
+1. User klik "Scrape Sekarang" -> `scraper.py` ambil HTML dari books.toscrape.com
+2. Data diparsing (judul, harga, rating, stok) -> disimpan ke `scraped_books`
+3. User bisa edit/hapus langsung dari tabel di halaman yang sama
+
+**Fitur 2 (API):**
+1. User ketik judul di kolom pencarian -> `api_client.py` request ke Google Books API
+2. Hasil pencarian (belum disimpan) ditampilkan sebagai kartu dengan tombol "Simpan ke Koleksi"
+3. Saat disimpan -> masuk ke `koleksi_buku`
+4. Di halaman "Koleksi Saya", user bisa ubah status baca/rating/catatan, atau hapus buku
 
 ## Cara Menjalankan Lokal
 ```bash
@@ -52,14 +73,13 @@ streamlit run app.py
 ```
 
 ## Cara Deploy ke Streamlit Community Cloud
-1. Push semua file ini ke repository GitHub.
-2. Buka https://share.streamlit.io/ -> login dengan GitHub.
-3. New app -> pilih repo, branch `main`, file utama `app.py`.
-4. Deploy.
+1. Push semua file ke GitHub (ganti semua file lama termasuk `db.py`, `api_client.py`).
+2. share.streamlit.io -> New app -> pilih repo, branch `main`, file utama `app.py`.
+3. Deploy, tunggu, lalu buka link yang diberikan.
 
-## Catatan
-- Filesystem Streamlit Community Cloud bersifat sementara — `data.db` bisa ter-reset
-  saat redeploy. Untuk kebutuhan data permanen, bisa migrasi ke database eksternal
-  (mis. Supabase/Postgres) tanpa mengubah struktur logika di atas.
-- Pencarian di Open Library dilakukan berdasarkan judul buku; kadang hasil tidak
-  100% cocok karena API mengembalikan kecocokan judul terdekat, bukan pencarian ISBN persis.
+## Catatan Penting
+- Filesystem Streamlit Community Cloud bersifat sementara — `data.db` bisa
+  ter-reset saat redeploy/reboot. Untuk data permanen, backup manual atau
+  migrasi ke database eksternal (Supabase/Postgres).
+- Google Books API punya kuota harian untuk request tanpa API key — cukup
+  untuk penggunaan wajar/demo, tapi kalau kena limit, coba lagi nanti.
