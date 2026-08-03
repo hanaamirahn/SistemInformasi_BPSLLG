@@ -24,6 +24,7 @@ db.init_db()
 # Sidebar navigasi
 # ---------------------------------------------------------------------
 st.sidebar.title("📚 Sistem Informasi Buku")
+st.sidebar.caption("Katalog buku pribadi — sebagian data diambil otomatis dari internet, sebagian Anda cari & simpan sendiri.")
 halaman = st.sidebar.radio(
     "Navigasi",
     ["🏠 Dashboard", "📦 Data Web Scraping", "🔍 Cari Buku (API)", "📖 Koleksi Saya", "ℹ️ Tentang"],
@@ -256,23 +257,77 @@ elif halaman == "📖 Koleksi Saya":
 # ℹ️ TENTANG
 # =======================================================================
 elif halaman == "ℹ️ Tentang":
-    st.title("ℹ️ Tentang Proyek Ini")
+    st.title("ℹ️ Tentang Website Ini")
+
     st.markdown("""
-    **Sistem Informasi Buku** ini dibuat untuk memenuhi 2 fitur utama:
+    ### Website ini tentang apa?
 
-    1. **Sistem CRUD data hasil Web Scraping** — mengambil data buku otomatis
-       dari [books.toscrape.com](https://books.toscrape.com), lalu bisa ditambah,
-       diubah, dan dihapus di halaman **📦 Data Web Scraping**.
-    2. **Sistem CRUD data hasil tarik API** — mencari buku lewat
-       [Google Books API](https://developers.google.com/books), menyimpannya
-       sebagai koleksi pribadi, lalu bisa dikelola (status baca, rating, catatan)
-       di halaman **📖 Koleksi Saya**.
+    **Katalog Buku** adalah tempat mengumpulkan dan mencatat buku-buku secara pribadi.
+    Ada dua cara buku bisa masuk ke sini:
 
-    ### Teknologi yang Digunakan
-    - **Bahasa**: Python 3
-    - **Framework**: Streamlit
-    - **Database**: SQLite
-    - **Web Scraping**: requests + BeautifulSoup4
-    - **API**: Google Books API (gratis, tanpa API key)
-    - **Hosting**: Streamlit Community Cloud
+    - Sebagian **diambil otomatis dari internet** (lewat teknik *Web Scraping*)
+    - Sebagian lagi **Anda cari dan simpan sendiri** (lewat *API* pencarian buku)
+
+    Setelah tersimpan, Anda bebas mengubah, memberi catatan/rating, atau menghapus data itu kapan saja.
     """)
+
+    st.markdown("---")
+
+    st.markdown("### Kenapa ada 2 cara pengambilan data?")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("""
+        **📦 Cara 1: Web Scraping**
+
+        Sistem "membaca" halaman sebuah situs toko buku
+        ([books.toscrape.com](https://books.toscrape.com)) lalu **menyalin sendiri**
+        semua judul, harga, rating, dan status stoknya — tanpa Anda ketik satu-satu.
+
+        Cocok kalau Anda ingin punya banyak data buku dengan cepat.
+        """)
+    with col2:
+        st.markdown("""
+        **🔍 Cara 2: API (Google Books)**
+
+        Anda ketik judul buku yang **benar-benar Anda cari** (misal "Atomic Habits"),
+        sistem bertanya ke database Google Books, lalu Anda pilih sendiri mana yang
+        mau disimpan ke koleksi pribadi.
+
+        Cocok kalau Anda mau mencatat buku tertentu yang sedang/sudah Anda baca.
+        """)
+
+    st.markdown("---")
+
+    st.markdown("### Sebelum mulai pakai, ini yang perlu Anda tahu")
+    st.info(
+        "- Website ini **bukan toko buku** — Anda tidak bisa membeli buku di sini.\n"
+        "- Data yang tersimpan **bisa hilang** kalau website ini di-restart oleh sistem "
+        "hosting (karena database-nya bersifat sementara, bukan permanen).\n"
+        "- Fungsinya murni untuk **mencatat & mengelola daftar buku**, mirip seperti "
+        "buku catatan digital pribadi."
+    )
+
+    st.markdown("### Cara pakai singkat")
+    st.markdown("""
+    1. Buka **📦 Data Web Scraping** → klik tombol untuk mengambil data buku otomatis
+    2. Atau buka **🔍 Cari Buku (API)** → ketik judul buku → simpan ke koleksi
+    3. Kelola semuanya (ubah/hapus) langsung di halaman masing-masing
+    """)
+
+    st.markdown("---")
+
+    with st.expander("🛠️ Detail teknis (untuk yang penasaran)"):
+        st.markdown("""
+        Proyek ini dibuat untuk memenuhi 2 syarat sistem CRUD:
+
+        1. **CRUD data hasil Web Scraping** — halaman **📦 Data Web Scraping**
+        2. **CRUD data hasil tarik API** — halaman **📖 Koleksi Saya**
+
+        **Teknologi yang digunakan:**
+        - Bahasa: Python 3
+        - Framework: Streamlit
+        - Database: SQLite
+        - Web Scraping: requests + BeautifulSoup4
+        - API: Google Books API (gratis, tanpa API key)
+        - Hosting: Streamlit Community Cloud
+        """)
