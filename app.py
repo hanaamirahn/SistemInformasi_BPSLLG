@@ -263,13 +263,12 @@ elif halaman == "ℹ️ Tentang":
     st.title("ℹ️ Tentang Website Ini")
 
     st.markdown("""
-    Jadi ini semacam catatan buku digital — tempat saya kumpulkan buku-buku
-    yang menarik, entah yang saya temukan sendiri atau yang diambil otomatis
-    dari internet. Sekali data masuk, tinggal diedit, dikasih catatan atau
-    rating, atau dihapus kalau memang tidak relevan lagi.
+    Website ini dibuat sebagai sarana pencatatan buku secara pribadi. Ide dasarnya
+    sederhana: setiap buku yang menarik perhatian dapat dikumpulkan di satu tempat,
+    kemudian diberi catatan, penilaian, atau diperbarui sewaktu-waktu sesuai kebutuhan.
 
-    Ada dua jalan buku bisa masuk ke sini, dan keduanya sengaja dibuat beda
-    supaya masing-masing punya kegunaannya sendiri.
+    Data buku yang tersimpan berasal dari dua sumber yang sengaja dibedakan, karena
+    masing-masing memiliki tujuan yang berbeda pula.
     """)
 
     st.markdown("---")
@@ -277,50 +276,55 @@ elif halaman == "ℹ️ Tentang":
     col1, col2 = st.columns(2)
     with col1:
         st.markdown("""
-        **📦 Yang pertama, scraping**
+        **📦 Sumber pertama: pengambilan data otomatis**
 
-        Bagian ini "menyontek" halaman toko buku
-        ([books.toscrape.com](https://books.toscrape.com)) — sistem otomatis
-        salin judul, harga, rating, sama status stoknya. Enaknya, bisa dapat
-        banyak data sekaligus tanpa harus ngetik satu-satu.
+        Bagian ini mengambil data dari sebuah situs contoh toko buku
+        ([books.toscrape.com](https://books.toscrape.com)) secara otomatis —
+        meliputi judul, harga, penilaian, dan status ketersediaannya. Metode ini
+        cocok digunakan apabila dibutuhkan data dalam jumlah banyak dalam waktu singkat.
         """)
     with col2:
         st.markdown("""
-        **🔍 Yang kedua, cari via API**
+        **🔍 Sumber kedua: pencarian melalui API**
 
-        Ini kebalikannya — Anda yang ketik judul buku yang memang lagi dicari
-        (misalnya "Atomic Habits"), lalu sistem tanya ke Open Library, dan
-        Anda pilih sendiri mana yang mau disimpan. Cocok buat nyatet buku
-        yang benar-benar sedang atau sudah Anda baca.
+        Berbeda dengan yang pertama, di sini pengguna sendiri yang menentukan buku
+        apa yang ingin dicari, misalnya "Atomic Habits". Sistem kemudian meminta
+        data tersebut dari Open Library, dan pengguna dapat memilih untuk
+        menyimpannya sebagai koleksi pribadi.
         """)
 
     st.markdown("---")
 
-    st.markdown("**Sebelum dipakai, ada baiknya tahu ini dulu:**")
+    st.markdown("**Beberapa hal yang perlu diketahui sebelum menggunakan website ini:**")
     st.info(
-        "Ini bukan toko buku, jadi tidak ada fitur beli-membeli di sini. "
-        "Datanya juga belum permanen — kalau server hosting-nya restart, "
-        "isi database bisa ikut hilang. Anggap saja ini semacam buku catatan "
-        "digital yang sederhana, bukan sistem produksi yang siap dipakai jangka panjang."
+        "Website ini tidak menyediakan fasilitas jual beli buku. Selain itu, "
+        "data yang tersimpan bersifat sementara dan dapat hilang apabila server "
+        "hosting mengalami pemulihan ulang. Dengan kata lain, website ini lebih "
+        "tepat dipandang sebagai catatan pribadi sederhana, bukan sistem yang "
+        "dirancang untuk penyimpanan data jangka panjang."
     )
 
     st.markdown("""
-    **Cara pakainya simpel** — buka *Data Web Scraping* kalau mau ambil banyak
-    data sekaligus, atau buka *Cari Buku (API)* kalau mau cari judul tertentu.
-    Setelah itu tinggal kelola datanya (edit/hapus) langsung di halaman masing-masing.
+    Secara umum, penggunaannya dapat dimulai dari halaman **Data Web Scraping**
+    apabila ingin mengambil data secara otomatis, atau halaman **Cari Buku (API)**
+    apabila ingin mencari judul tertentu. Data yang sudah tersimpan dapat diubah
+    maupun dihapus langsung pada halaman masing-masing.
     """)
 
     st.markdown("---")
 
-    with st.expander("🛠️ Buat yang penasaran sama detail teknisnya"):
+    with st.expander("🛠️ Penjelasan teknis bagi yang ingin mengetahui lebih lanjut"):
         st.markdown("""
-        Proyek ini awalnya dibuat untuk memenuhi dua syarat: punya sistem CRUD
-        untuk data hasil scraping, dan sistem CRUD terpisah untuk data hasil
-        tarik API. Yang pertama ada di halaman **Data Web Scraping**, yang
-        kedua di halaman **Koleksi Saya**.
+        Proyek ini pada mulanya dikembangkan untuk memenuhi dua ketentuan utama,
+        yaitu tersedianya sistem CRUD untuk data hasil web scraping dan sistem
+        CRUD terpisah untuk data hasil pengambilan API. Ketentuan pertama
+        diwujudkan pada halaman **Data Web Scraping**, sedangkan ketentuan kedua
+        pada halaman **Koleksi Saya**.
 
-        Dari sisi teknis, dibangun pakai Python dan Streamlit, datanya disimpan
-        di SQLite, scraping-nya pakai requests + BeautifulSoup4, dan API-nya
-        dari Open Library (gratis, tidak perlu API key). Untuk hosting-nya
-        pakai Streamlit Community Cloud.
+        Dari segi teknis, aplikasi ini dibangun menggunakan bahasa pemrograman
+        Python dengan kerangka kerja Streamlit. Data disimpan dalam basis data
+        SQLite, proses pengambilan data dari situs web memanfaatkan pustaka
+        requests dan BeautifulSoup4, sedangkan data API diperoleh dari Open
+        Library yang bersifat gratis dan tidak memerlukan kunci API. Aplikasi
+        ini kemudian dihosting melalui Streamlit Community Cloud.
         """)
