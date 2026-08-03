@@ -49,15 +49,43 @@ if halaman == "🏠 Dashboard":
     col2.metric("📖 Total Koleksi (API)", stats["total_koleksi"])
     col3.metric("⭐ Rata-rata Rating Koleksi", stats["avg_rating"] if stats["avg_rating"] else "-")
 
+   import plotly.express as px
+
     st.markdown("---")
     st.subheader("Status Bacaan Koleksi Saya")
+    
     if stats["status_breakdown"]:
         df_status = pd.DataFrame(
-            list(stats["status_breakdown"].items()), columns=["Status", "Jumlah"]
+            list(stats["status_breakdown"].items()),
+            columns=["Status", "Jumlah"]
         )
-        st.bar_chart(df_status.set_index("Status"))
+    
+        fig = px.bar(
+            df_status,
+            x="Status",
+            y="Jumlah",
+            text="Jumlah",
+            color="Status",
+        )
+    
+        fig.update_layout(
+            xaxis_title="Status Bacaan",
+            yaxis_title="Jumlah Buku",
+            showlegend=False,
+            template="plotly_white",
+            height=400,
+            margin=dict(l=20, r=20, t=40, b=20),
+        )
+    
+        # Label horizontal
+        fig.update_xaxes(tickangle=0)
+    
+        st.plotly_chart(fig, use_container_width=True)
+    
     else:
-        st.info("Belum ada buku di Koleksi Saya. Coba cari & simpan buku di menu **Cari Buku (API)**.")
+        st.info(
+            "Belum ada buku di Koleksi Saya. Coba cari & simpan buku di menu **Cari Buku (API)**."
+        )
 
     st.markdown("---")
     st.info(
