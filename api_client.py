@@ -4,36 +4,55 @@ FITUR 2: Tarik data dari API.
 Sumber: Google Books API (https://www.googleapis.com/books/v1/volumes)
 Gratis, tidak butuh API key untuk penggunaan dasar/pencarian.
 
-Modul ini HANYA bertugas mencari & mengembalikan data dari API.
-Proses simpan ke database dilakukan terpisah oleh app.py lewat db.insert_koleksi(),
-supaya user yang menentukan buku mana yang benar-benar mau disimpan ke koleksinya.
+search_books_api() mengembalikan (results, debug_info):
+- results: list buku yang ditemukan (bisa kosong)
+- debug_info: dict berisi status_code, url yang dipanggil, dan pesan error kalau ada
+  -> ini dipakai untuk troubleshooting kalau pencarian selalu gagal
 """
 
 import requests
 
 SEARCH_URL = "https://www.googleapis.com/books/v1/volumes"
 
+# Beberapa API menolak request tanpa User-Agent yang jelas (dianggap bot).
+HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; KatalogBukuApp/1.0)"}
+
 
 def search_books_api(query, max_results=10):
     """
     Cari buku di Google Books API berdasarkan kata kunci `query`.
-    Return: list of dict, masing-masing berisi title, authors, published_year,
-    isbn, cover_url, description. List kosong kalau tidak ada hasil / gagal.
+    Return: (results, debug_info)
     """
+    debug_info = {"query": query}
+
     if not query.strip():
-        return []
+        debug_info["error"] = "Kata kunci kosong"
+        return [], debug_info
 
     params = {"q": query, "maxResults": max_results}
 
     try:
-        response = requests.get(SEARCH_URL, params=params, timeout=10)
-    except requests.RequestException:
-        return []
+        response = requests.get(SEARCH_URL, params=params, headers=HEADERS, timeout=10)
+    except requests.RequestException as e:
+        debug_info["error"] = f"Gagal terhubung ke API: {e}"
+        return [], debug_info
+
+    debug_info["status_code"] = response.status_code
+    debug_info["url_dipanggil"] = response.url
 
     if response.status_code != 200:
-        return []
+        debug_info["error"] = f"API mengembalikan status HTTP {response.status_code} (bukan 200)"
+        debug_info["response_snippet"] = response.text[:300]
+        return [], debug_info
 
-    data = response.json()
+    try:
+        data = response.json()
+    except ValueError:
+        debug_info["error"] = "Respons API bukan format JSON yang valid"
+        debug_info["response_snippet"] = response.text[:300]
+        return [], debug_info
+
+    debug_info["total_items_dilaporkan_api"] = data.get("totalItems", 0)
     items = data.get("items", [])
     results = []
 
@@ -64,4 +83,7 @@ def search_books_api(query, max_results=10):
             "description": description,
         })
 
-    return results
+    if not results:
+        debug_info["error"] = "API merespons 200 OK, tapi tidak ada 'items' di hasilnya (kata kunci tidak ditemukan)"
+
+    return results, debug_info
