@@ -49,51 +49,23 @@ if halaman == "🏠 Dashboard":
     col2.metric("📖 Total Koleksi (API)", stats["total_koleksi"])
     col3.metric("⭐ Rata-rata Rating Koleksi", stats["avg_rating"] if stats["avg_rating"] else "-")
 
-    import plotly.express as px
-
     st.markdown("---")
     st.subheader("Status Bacaan Koleksi Saya")
-    
     if stats["status_breakdown"]:
         df_status = pd.DataFrame(
-            list(stats["status_breakdown"].items()),
-            columns=["Status", "Jumlah"]
+            list(stats["status_breakdown"].items()), columns=["Status", "Jumlah"]
         )
-    
-        fig = px.bar(
-            df_status,
-            x="Status",
-            y="Jumlah",
-            text="Jumlah",
-            color="Status",
-        )
-    
-        fig.update_layout(
-            xaxis_title="Status Bacaan",
-            yaxis_title="Jumlah Buku",
-            showlegend=False,
-            template="plotly_white",
-            height=400,
-            margin=dict(l=20, r=20, t=40, b=20),
-        )
-    
-        # Label horizontal
-        fig.update_xaxes(tickangle=0)
-    
-        st.plotly_chart(fig, use_container_width=True)
-    
+        st.bar_chart(df_status.set_index("Status"))
     else:
-        st.info(
-            "Belum ada buku di Koleksi Saya. Coba cari & simpan buku di menu **Cari Buku (API)**."
-        )
-    
-        st.markdown("---")
-        st.info(
-            "**Cara pakai website ini:**\n\n"
-            "1. Buka **📦 Data Web Scraping** untuk mengambil data buku otomatis dari internet (Fitur 1).\n"
-            "2. Buka **🔍 Cari Buku (API)** untuk mencari buku tertentu dan menyimpannya ke koleksi pribadi (Fitur 2).\n"
-            "3. Kelola datanya di **📦 Data Web Scraping** atau **📖 Koleksi Saya** — bisa diubah atau dihapus kapan saja."
-        )
+        st.info("Belum ada buku di Koleksi Saya. Coba cari & simpan buku di menu **Cari Buku (API)**.")
+
+    st.markdown("---")
+    st.info(
+        "**Cara pakai website ini:**\n\n"
+        "1. Buka **📦 Data Web Scraping** untuk mengambil data buku otomatis dari internet (Fitur 1).\n"
+        "2. Buka **🔍 Cari Buku (API)** untuk mencari buku tertentu dan menyimpannya ke koleksi pribadi (Fitur 2).\n"
+        "3. Kelola datanya di **📦 Data Web Scraping** atau **📖 Koleksi Saya** — bisa diubah atau dihapus kapan saja."
+    )
 
 
 # =======================================================================
@@ -242,100 +214,45 @@ elif halaman == "📖 Koleksi Saya":
         st.dataframe(df, use_container_width=True, hide_index=True)
 
         st.markdown("---")
-
-        # ==========================
-        # Notifikasi
-        # ==========================
-        if st.session_state.get("update_koleksi_success", False):
-            st.success("✅ Data koleksi berhasil diperbarui.")
-            st.session_state["update_koleksi_success"] = False
-        
-        if st.session_state.get("delete_koleksi_success", False):
-            judul = st.session_state.get("judul_dihapus", "")
-            st.success(f"🗑️ Buku '{judul}' berhasil dihapus dari koleksi.")
-            st.session_state["delete_koleksi_success"] = False
-            st.session_state["judul_dihapus"] = ""
-        
-        # ==========================
-        # Edit / Hapus Buku
-        # ==========================
         st.subheader("✏️ Edit / Hapus Buku")
-        
+
         pilihan = st.selectbox(
-            "Pilih buku:",
-            options=koleksi,
-            format_func=lambda b: b["title"],
-            key="pilih_koleksi",
+            "Pilih buku:", options=koleksi, format_func=lambda b: b["title"], key="pilih_koleksi",
         )
-        
+
         col_img, col_form = st.columns([1, 3])
-        
         with col_img:
             if pilihan["cover_url"]:
                 st.image(pilihan["cover_url"], width=140)
             st.caption(f"Penulis: {pilihan['authors']}")
             st.caption(f"Tahun: {pilihan['published_year']}")
             st.caption(f"ISBN: {pilihan['isbn']}")
-        
+
         with col_form:
             with st.form("form_edit_koleksi"):
-        
                 status = st.selectbox(
                     "Status Bacaan",
                     ["Belum Dibaca", "Sedang Dibaca", "Selesai Dibaca"],
-                    index=["Belum Dibaca", "Sedang Dibaca", "Selesai Dibaca"].index(
-                        pilihan["status_baca"]
-                    ) if pilihan["status_baca"] in [
-                        "Belum Dibaca",
-                        "Sedang Dibaca",
-                        "Selesai Dibaca"
-                    ] else 0,
+                    index=["Belum Dibaca", "Sedang Dibaca", "Selesai Dibaca"].index(pilihan["status_baca"])
+                    if pilihan["status_baca"] in ["Belum Dibaca", "Sedang Dibaca", "Selesai Dibaca"] else 0,
                 )
-        
-                rating = st.slider(
-                    "Rating Pribadi",
-                    0,
-                    5,
-                    int(pilihan["rating_pribadi"] or 0)
-                )
-        
-                catatan = st.text_area(
-                    "Catatan Pribadi",
-                    value=pilihan["catatan_pribadi"] or ""
-                )
-        
+                rating = st.slider("Rating Pribadi", 0, 5, int(pilihan["rating_pribadi"] or 0))
+                catatan = st.text_area("Catatan Pribadi", value=pilihan["catatan_pribadi"] or "")
+
                 c1, c2 = st.columns(2)
-        
                 with c1:
-                    update_btn = st.form_submit_button(
-                        "💾 Simpan Perubahan",
-                        type="primary"
-                    )
-        
+                    update_btn = st.form_submit_button("💾 Simpan Perubahan", type="primary")
                 with c2:
-                    delete_btn = st.form_submit_button(
-                        "🗑️ Hapus dari Koleksi"
-                    )
-        
-                # Update
+                    delete_btn = st.form_submit_button("🗑️ Hapus dari Koleksi")
+
                 if update_btn:
-                    db.update_koleksi(
-                        pilihan["id"],
-                        status,
-                        rating,
-                        catatan,
-                    )
-        
-                    st.session_state["update_koleksi_success"] = True
+                    db.update_koleksi(pilihan["id"], status, rating, catatan)
+                    st.success("Perubahan berhasil disimpan.")
                     st.rerun()
-        
-                # Delete
+
                 if delete_btn:
-                    st.session_state["judul_dihapus"] = pilihan["title"]
-        
                     db.delete_koleksi(pilihan["id"])
-        
-                    st.session_state["delete_koleksi_success"] = True
+                    st.success(f"'{pilihan['title']}' dihapus dari koleksi.")
                     st.rerun()
 
 
@@ -346,74 +263,64 @@ elif halaman == "ℹ️ Tentang":
     st.title("ℹ️ Tentang Website Ini")
 
     st.markdown("""
-    ### Website ini tentang apa?
+    Jadi ini semacam catatan buku digital — tempat saya kumpulkan buku-buku
+    yang menarik, entah yang saya temukan sendiri atau yang diambil otomatis
+    dari internet. Sekali data masuk, tinggal diedit, dikasih catatan atau
+    rating, atau dihapus kalau memang tidak relevan lagi.
 
-    **Katalog Buku** adalah tempat mengumpulkan dan mencatat buku-buku secara pribadi.
-    Ada dua cara buku bisa masuk ke sini:
-
-    - Sebagian **diambil otomatis dari internet** (lewat teknik *Web Scraping*)
-    - Sebagian lagi **Anda cari dan simpan sendiri** (lewat *API* pencarian buku)
-
-    Setelah tersimpan, Anda bebas mengubah, memberi catatan/rating, atau menghapus data itu kapan saja.
+    Ada dua jalan buku bisa masuk ke sini, dan keduanya sengaja dibuat beda
+    supaya masing-masing punya kegunaannya sendiri.
     """)
 
     st.markdown("---")
 
-    st.markdown("### Kenapa ada 2 cara pengambilan data?")
     col1, col2 = st.columns(2)
     with col1:
         st.markdown("""
-        **📦 Cara 1: Web Scraping**
+        **📦 Yang pertama, scraping**
 
-        Sistem "membaca" halaman sebuah situs toko buku
-        ([books.toscrape.com](https://books.toscrape.com)) lalu **menyalin sendiri**
-        semua judul, harga, rating, dan status stoknya — tanpa Anda ketik satu-satu.
-
-        Cocok kalau Anda ingin punya banyak data buku dengan cepat.
+        Bagian ini "menyontek" halaman toko buku
+        ([books.toscrape.com](https://books.toscrape.com)) — sistem otomatis
+        salin judul, harga, rating, sama status stoknya. Enaknya, bisa dapat
+        banyak data sekaligus tanpa harus ngetik satu-satu.
         """)
     with col2:
         st.markdown("""
-        **🔍 Cara 2: API (Open Library)**
+        **🔍 Yang kedua, cari via API**
 
-        Anda ketik judul buku yang **benar-benar Anda cari** (misal "Atomic Habits"),
-        sistem bertanya ke database Open Library, lalu Anda pilih sendiri mana yang
-        mau disimpan ke koleksi pribadi.
-
-        Cocok kalau Anda mau mencatat buku tertentu yang sedang/sudah Anda baca.
+        Ini kebalikannya — Anda yang ketik judul buku yang memang lagi dicari
+        (misalnya "Atomic Habits"), lalu sistem tanya ke Open Library, dan
+        Anda pilih sendiri mana yang mau disimpan. Cocok buat nyatet buku
+        yang benar-benar sedang atau sudah Anda baca.
         """)
 
     st.markdown("---")
 
-    st.markdown("### Sebelum mulai pakai, ini yang perlu Anda tahu")
+    st.markdown("**Sebelum dipakai, ada baiknya tahu ini dulu:**")
     st.info(
-        "- Website ini **bukan toko buku** — Anda tidak bisa membeli buku di sini.\n"
-        "- Data yang tersimpan **bisa hilang** kalau website ini di-restart oleh sistem "
-        "hosting (karena database-nya bersifat sementara, bukan permanen).\n"
-        "- Fungsinya murni untuk **mencatat & mengelola daftar buku**, mirip seperti "
-        "buku catatan digital pribadi."
+        "Ini bukan toko buku, jadi tidak ada fitur beli-membeli di sini. "
+        "Datanya juga belum permanen — kalau server hosting-nya restart, "
+        "isi database bisa ikut hilang. Anggap saja ini semacam buku catatan "
+        "digital yang sederhana, bukan sistem produksi yang siap dipakai jangka panjang."
     )
 
-    st.markdown("### Cara pakai singkat")
     st.markdown("""
-    1. Buka **📦 Data Web Scraping** → klik tombol untuk mengambil data buku otomatis
-    2. Atau buka **🔍 Cari Buku (API)** → ketik judul buku → simpan ke koleksi
-    3. Kelola semuanya (ubah/hapus) langsung di halaman masing-masing
+    **Cara pakainya simpel** — buka *Data Web Scraping* kalau mau ambil banyak
+    data sekaligus, atau buka *Cari Buku (API)* kalau mau cari judul tertentu.
+    Setelah itu tinggal kelola datanya (edit/hapus) langsung di halaman masing-masing.
     """)
 
     st.markdown("---")
 
-    with st.expander("🛠️ Detail teknis (untuk yang penasaran)"):
+    with st.expander("🛠️ Buat yang penasaran sama detail teknisnya"):
         st.markdown("""
-        Proyek ini dibuat untuk memenuhi 2 syarat sistem CRUD:
+        Proyek ini awalnya dibuat untuk memenuhi dua syarat: punya sistem CRUD
+        untuk data hasil scraping, dan sistem CRUD terpisah untuk data hasil
+        tarik API. Yang pertama ada di halaman **Data Web Scraping**, yang
+        kedua di halaman **Koleksi Saya**.
 
-        1. **CRUD data hasil Web Scraping** — halaman **📦 Data Web Scraping**
-        2. **CRUD data hasil tarik API** — halaman **📖 Koleksi Saya**
-
-        **Teknologi yang digunakan:**
-        - Bahasa: Python 3
-        - Framework: Streamlit
-        - Database: SQLite
-        - Web Scraping: requests + BeautifulSoup4
-        - API: Open Library API (gratis, tanpa API key)
-        - Hosting: Streamlit Community Cloud
+        Dari sisi teknis, dibangun pakai Python dan Streamlit, datanya disimpan
+        di SQLite, scraping-nya pakai requests + BeautifulSoup4, dan API-nya
+        dari Open Library (gratis, tidak perlu API key). Untuk hosting-nya
+        pakai Streamlit Community Cloud.
         """)
