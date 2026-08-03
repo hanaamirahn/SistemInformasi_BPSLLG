@@ -6,7 +6,7 @@ syarat tugas, dibungkus dalam 1 website dengan navigasi yang jelas:
 1. **Fitur 1 — CRUD Data Web Scraping**: mengambil data buku otomatis dari
    [books.toscrape.com](https://books.toscrape.com), dikelola penuh (Create,
    Read, Update, Delete) di halaman **📦 Data Web Scraping**.
-2. **Fitur 2 — CRUD Data API**: mencari buku lewat **Google Books API**,
+2. **Fitur 2 — CRUD Data API**: mencari buku lewat **Open Library API**,
    menyimpannya sebagai koleksi pribadi (dengan status baca, rating, catatan),
    dikelola penuh di halaman **📖 Koleksi Saya**.
 
@@ -14,7 +14,7 @@ syarat tugas, dibungkus dalam 1 website dengan navigasi yang jelas:
 ```
 🏠 Dashboard             -> ringkasan kedua fitur (jumlah data, grafik status)
 📦 Data Web Scraping     -> FITUR 1: scrape + CRUD penuh
-🔍 Cari Buku (API)       -> FITUR 2a: cari via Google Books API + tombol simpan
+🔍 Cari Buku (API)       -> FITUR 2a: cari via Open Library API + tombol simpan
 📖 Koleksi Saya          -> FITUR 2b: CRUD penuh atas buku yang disimpan
 ℹ️ Tentang               -> penjelasan proyek & tech stack
 ```
@@ -24,14 +24,14 @@ syarat tugas, dibungkus dalam 1 website dengan navigasi yang jelas:
 - **Framework**: Streamlit
 - **Database**: SQLite (2 tabel independen: `scraped_books`, `koleksi_buku`)
 - **Scraping**: requests + BeautifulSoup4
-- **API**: Google Books API (gratis, tanpa API key)
+- **API**: Open Library API (gratis, tanpa API key)
 
 ## Struktur File
 ```
 app.py          -> semua UI, 5 halaman via sidebar
 db.py           -> koneksi database & CRUD kedua fitur + statistik dashboard
 scraper.py      -> Fitur 1: scraping books.toscrape.com
-api_client.py   -> Fitur 2: pencarian Google Books API
+api_client.py   -> Fitur 2: pencarian Open Library API
 requirements.txt-> daftar dependency
 ```
 
@@ -61,7 +61,7 @@ karena masing-masing memang harus berdiri sebagai sistem CRUD tersendiri.
 3. User bisa edit/hapus langsung dari tabel di halaman yang sama
 
 **Fitur 2 (API):**
-1. User ketik judul di kolom pencarian -> `api_client.py` request ke Google Books API
+1. User ketik judul di kolom pencarian -> `api_client.py` request ke Open Library API
 2. Hasil pencarian (belum disimpan) ditampilkan sebagai kartu dengan tombol "Simpan ke Koleksi"
 3. Saat disimpan -> masuk ke `koleksi_buku`
 4. Di halaman "Koleksi Saya", user bisa ubah status baca/rating/catatan, atau hapus buku
@@ -81,5 +81,6 @@ streamlit run app.py
 - Filesystem Streamlit Community Cloud bersifat sementara — `data.db` bisa
   ter-reset saat redeploy/reboot. Untuk data permanen, backup manual atau
   migrasi ke database eksternal (Supabase/Postgres).
-- Google Books API punya kuota harian untuk request tanpa API key — cukup
-  untuk penggunaan wajar/demo, tapi kalau kena limit, coba lagi nanti.
+- Open Library API tidak mensyaratkan API key dan tidak memiliki kuota harian
+  seketat Google Books API — cocok untuk penggunaan wajar/demo tanpa perlu
+  daftar akun apa pun.
