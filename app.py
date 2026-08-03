@@ -5,7 +5,7 @@ Sistem Informasi Buku — 2 fitur CRUD yang terpisah, dibungkus 1 website.
 Halaman:
   🏠 Dashboard             -> ringkasan kedua fitur
   📦 Data Web Scraping     -> FITUR 1: CRUD penuh data hasil scraping
-  🔍 Cari Buku (API)       -> FITUR 2a: cari buku lewat Google Books API
+  🔍 Cari Buku (API)       -> FITUR 2a: cari buku lewat Open Library API
   📖 Koleksi Saya          -> FITUR 2b: CRUD penuh atas buku yang disimpan dari API
   ℹ️ Tentang               -> penjelasan proyek
 """
@@ -147,7 +147,7 @@ elif halaman == "📦 Data Web Scraping":
 # =======================================================================
 elif halaman == "🔍 Cari Buku (API)":
     st.title("🔍 Cari Buku (API)")
-    st.caption("Fitur 2: Tarik data dari Google Books API, lalu simpan ke Koleksi Saya.")
+    st.caption("Fitur 2: Tarik data dari Open Library API, lalu simpan ke Koleksi Saya.")
 
     query = st.text_input("Ketik judul buku yang ingin dicari", placeholder="contoh: Atomic Habits")
     cari_btn = st.button("🔍 Cari", type="primary")
@@ -290,10 +290,10 @@ elif halaman == "ℹ️ Tentang":
         """)
     with col2:
         st.markdown("""
-        **🔍 Cara 2: API (Google Books)**
+        **🔍 Cara 2: API (Open Library)**
 
         Anda ketik judul buku yang **benar-benar Anda cari** (misal "Atomic Habits"),
-        sistem bertanya ke database Google Books, lalu Anda pilih sendiri mana yang
+        sistem bertanya ke database Open Library, lalu Anda pilih sendiri mana yang
         mau disimpan ke koleksi pribadi.
 
         Cocok kalau Anda mau mencatat buku tertentu yang sedang/sudah Anda baca.
@@ -331,6 +331,6 @@ elif halaman == "ℹ️ Tentang":
         - Framework: Streamlit
         - Database: SQLite
         - Web Scraping: requests + BeautifulSoup4
-        - API: Google Books API (gratis, tanpa API key)
+        - API: Open Library API (gratis, tanpa API key)
         - Hosting: Streamlit Community Cloud
         """)
