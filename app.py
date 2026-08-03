@@ -132,7 +132,16 @@ elif halaman == "📦 Data Web Scraping":
             hide_index=True,
         )
 
-        st.subheader("✏️ Edit / Hapus Data")
+    # Tampilkan notifikasi jika sebelumnya berhasil update
+    if st.session_state.get("update_scraping_success", False):
+      st.success("✅ Data berhasil diperbarui.")
+      st.session_state["update_scraping_success"] = False 
+
+    if st.session_state.get("delete_scraping_success", False):
+      st.success("🗑️ Data berhasil dihapus.")
+      st.session_state["delete_scraping_success"] = False
+
+      st.subheader("✏️ Edit / Hapus Data")
         pilihan = st.selectbox(
             "Pilih data:", options=scraped, format_func=lambda b: b["title"], key="pilih_scraping",
         )
@@ -153,13 +162,24 @@ elif halaman == "📦 Data Web Scraping":
                 delete_btn = st.form_submit_button("🗑️ Hapus")
 
             if update_btn:
-                db.update_scraped_book(pilihan["id"], new_judul, new_harga, new_rating, new_stok)
-                st.success("Data berhasil diupdate.")
+                db.update_scraped_book(
+                    pilihan["id"],
+                    new_judul,
+                    new_harga,
+                    new_rating,
+                    new_stok
+                )
+            
+                # Simpan status berhasil update
+                st.session_state["update_scraping_success"] = True
+            
                 st.rerun()
 
             if delete_btn:
                 db.delete_scraped_book(pilihan["id"])
-                st.success("Data berhasil dihapus.")
+            
+                st.session_state["delete_scraping_success"] = True
+            
                 st.rerun()
 
 
