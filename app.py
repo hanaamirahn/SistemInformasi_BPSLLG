@@ -51,13 +51,32 @@ if halaman == "🏠 Dashboard":
 
     st.markdown("---")
     st.subheader("Status Bacaan Koleksi Saya")
+    
     if stats["status_breakdown"]:
         df_status = pd.DataFrame(
-            list(stats["status_breakdown"].items()), columns=["Status", "Jumlah"]
+            list(stats["status_breakdown"].items()),
+            columns=["Status", "Jumlah"]
         )
-        st.bar_chart(df_status.set_index("Status"))
+    
+        fig, ax = plt.subplots(figsize=(6, 4))
+    
+        ax.bar(df_status["Status"], df_status["Jumlah"], color="#4E79A7")
+    
+        ax.set_xlabel("Status Bacaan")
+        ax.set_ylabel("Jumlah Buku")
+        ax.set_title("Status Bacaan Koleksi Saya")
+    
+        # Membuat tulisan di bawah grafik horizontal
+        plt.xticks(rotation=0, ha="center")
+    
+        plt.tight_layout()
+    
+        st.pyplot(fig)
+    
     else:
-        st.info("Belum ada buku di Koleksi Saya. Coba cari & simpan buku di menu **Cari Buku (API)**.")
+        st.info(
+            "Belum ada buku di Koleksi Saya. Coba cari & simpan buku di menu **Cari Buku (API)**."
+        )
 
     st.markdown("---")
     st.info(
