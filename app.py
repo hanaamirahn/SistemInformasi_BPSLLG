@@ -66,7 +66,7 @@ if halaman == "🏠 Dashboard":
             y="Jumlah",
             text="Jumlah",
             color="Status",
-            color_discrete_sequence=px.colors.sequential.Greens,
+            color_discrete_sequence=px.colors.sequential.Blue,
         )
     
         fig.update_layout(
