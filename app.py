@@ -64,7 +64,7 @@ if halaman == "🏠 Dashboard":
         "**Cara pakai website ini:**\n\n"
         "1. Buka **📦 Data Web Scraping** untuk mengambil data buku otomatis dari internet (Fitur 1).\n"
         "2. Buka **🔍 Cari Buku (API)** untuk mencari buku tertentu dan menyimpannya ke koleksi pribadi (Fitur 2).\n"
-        "3. Kelola datanya di **📦 Data Web Scraping** atau **📖 Koleksi Saya** bisa diubah atau dihapus kapan saja."
+        "3. Kelola datanya di **📦 Data Web Scraping** atau **📖 Koleksi Saya** — bisa diubah atau dihapus kapan saja."
     )
 
 
@@ -105,88 +105,42 @@ elif halaman == "📦 Data Web Scraping":
     st.markdown("---")
     st.subheader("📋 Semua Data Hasil Scraping")
     scraped = db.get_all_scraped_books()
-    
+
     if not scraped:
         st.info("Belum ada data. Silakan scraping atau tambah data manual di atas.")
     else:
-        df = pd.DataFrame(scraped)
-    
-        # Hapus id database
-        df = df.drop(columns=["id"], errors="ignore")
-    
-        # Tambahkan nomor urut
-        df.insert(0, "No", range(1, len(df) + 1))
-    
-        # Ganti nama kolom
-        df = df.rename(columns={
-            "title": "Judul",
-            "price": "Harga",
-            "rating": "Rating",
-            "availability": "Stok",
-            "source_url": "Sumber"
-        })
-    
-        st.dataframe(
-            df,
-            use_container_width=True,
-            hide_index=True,
+        st.dataframe(pd.DataFrame(scraped), use_container_width=True, hide_index=True)
+
+        st.subheader("✏️ Edit / Hapus Data")
+        pilihan = st.selectbox(
+            "Pilih data:", options=scraped, format_func=lambda b: b["title"], key="pilih_scraping",
         )
 
-    # Tampilkan notifikasi jika sebelumnya berhasil update
-    if st.session_state.get("update_scraping_success", False):
-        st.success("✅ Data berhasil diperbarui.")
-        st.session_state["update_scraping_success"] = False
-    
-    # Tampilkan notifikasi jika sebelumnya berhasil hapus
-    if st.session_state.get("delete_scraping_success", False):
-        st.success("🗑️ Data berhasil dihapus.")
-        st.session_state["delete_scraping_success"] = False
-    
-    # ==============================
-    # Edit / Hapus Data
-    # ==============================
-    st.subheader("✏️ Edit / Hapus Data")
-    
-    pilihan = st.selectbox(
-        "Pilih data:",
-        options=scraped,
-        format_func=lambda b: b["title"],
-        key="pilih_scraping",
-    )
-    
-    with st.form("form_edit_scraping"):
-        new_judul = st.text_input("Judul", value=pilihan["title"])
-        new_harga = st.text_input("Harga", value=pilihan["price"])
-        new_rating = st.select_slider(
-            "Rating",
-            ["1", "2", "3", "4", "5"],
-            value=pilihan["rating"] if pilihan["rating"] in ["1", "2", "3", "4", "5"] else "5",
-        )
-        new_stok = st.text_input("Stok", value=pilihan["availability"])
-    
-        c1, c2 = st.columns(2)
-    
-        with c1:
-            update_btn = st.form_submit_button("💾 Update", type="primary")
-    
-        with c2:
-            delete_btn = st.form_submit_button("🗑️ Hapus")
-    
-        if update_btn:
-            db.update_scraped_book(
-                pilihan["id"],
-                new_judul,
-                new_harga,
-                new_rating,
-                new_stok,
+        with st.form("form_edit_scraping"):
+            new_judul = st.text_input("Judul", value=pilihan["title"])
+            new_harga = st.text_input("Harga", value=pilihan["price"])
+            new_rating = st.select_slider(
+                "Rating", ["1", "2", "3", "4", "5"],
+                value=pilihan["rating"] if pilihan["rating"] in ["1", "2", "3", "4", "5"] else "5",
             )
-            st.session_state["update_scraping_success"] = True
-            st.rerun()
-    
-        if delete_btn:
-            db.delete_scraped_book(pilihan["id"])
-            st.session_state["delete_scraping_success"] = True
-            st.rerun()
+            new_stok = st.text_input("Stok", value=pilihan["availability"])
+
+            c1, c2 = st.columns(2)
+            with c1:
+                update_btn = st.form_submit_button("💾 Update", type="primary")
+            with c2:
+                delete_btn = st.form_submit_button("🗑️ Hapus")
+
+            if update_btn:
+                db.update_scraped_book(pilihan["id"], new_judul, new_harga, new_rating, new_stok)
+                st.success("Data berhasil diupdate.")
+                st.rerun()
+
+            if delete_btn:
+                db.delete_scraped_book(pilihan["id"])
+                st.success("Data berhasil dihapus.")
+                st.rerun()
+
 
 # =======================================================================
 # 🔍 FITUR 2a: Cari Buku (API)
@@ -200,10 +154,13 @@ elif halaman == "🔍 Cari Buku (API)":
 
     if cari_btn and query:
         with st.spinner("Mencari buku..."):
-            hasil = api_client.search_books_api(query)
+            hasil, debug_info = api_client.search_books_api(query)
         st.session_state["hasil_pencarian"] = hasil
+        st.session_state["debug_pencarian"] = debug_info
         if not hasil:
             st.warning("Buku tidak ditemukan. Coba kata kunci lain.")
+            with st.expander("🔧 Info debug (buka ini kalau pencarian terus gagal)"):
+                st.json(debug_info)
 
     hasil = st.session_state.get("hasil_pencarian", [])
 
@@ -346,7 +303,7 @@ elif halaman == "ℹ️ Tentang":
 
     st.markdown("### Sebelum mulai pakai, ini yang perlu Anda tahu")
     st.info(
-        "- Website ini **bukan toko buku** tidak bisa membeli buku di sini.\n"
+        "- Website ini **bukan toko buku** — Anda tidak bisa membeli buku di sini.\n"
         "- Data yang tersimpan **bisa hilang** kalau website ini di-restart oleh sistem "
         "hosting (karena database-nya bersifat sementara, bukan permanen).\n"
         "- Fungsinya murni untuk **mencatat & mengelola daftar buku**, mirip seperti "
@@ -362,7 +319,7 @@ elif halaman == "ℹ️ Tentang":
 
     st.markdown("---")
 
-    with st.expander("🛠️ Detail teknis"):
+    with st.expander("🛠️ Detail teknis (untuk yang penasaran)"):
         st.markdown("""
         Proyek ini dibuat untuk memenuhi 2 syarat sistem CRUD:
 
