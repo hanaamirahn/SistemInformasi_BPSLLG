@@ -316,7 +316,7 @@ elif halaman == "ℹ️ Tentang":
 
     st.markdown("---")
 
-    with st.expander("🛠️ Detail teknis (untuk yang penasaran)"):
+    with st.expander("🛠️ Detail teknis"):
         st.markdown("""
         Proyek ini dibuat untuk memenuhi 2 syarat sistem CRUD:
 
