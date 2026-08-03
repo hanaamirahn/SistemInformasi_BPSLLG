@@ -300,7 +300,7 @@ elif halaman == "ℹ️ Tentang":
 
     st.markdown("### Sebelum mulai pakai, ini yang perlu Anda tahu")
     st.info(
-        "- Website ini **bukan toko buku** — Anda tidak bisa membeli buku di sini.\n"
+        "- Website ini **bukan toko buku** tidak bisa membeli buku di sini.\n"
         "- Data yang tersimpan **bisa hilang** kalau website ini di-restart oleh sistem "
         "hosting (karena database-nya bersifat sementara, bukan permanen).\n"
         "- Fungsinya murni untuk **mencatat & mengelola daftar buku**, mirip seperti "
