@@ -64,7 +64,7 @@ if halaman == "🏠 Dashboard":
         "**Cara pakai website ini:**\n\n"
         "1. Buka **📦 Data Web Scraping** untuk mengambil data buku otomatis dari internet (Fitur 1).\n"
         "2. Buka **🔍 Cari Buku (API)** untuk mencari buku tertentu dan menyimpannya ke koleksi pribadi (Fitur 2).\n"
-        "3. Kelola datanya di **📦 Data Web Scraping** atau **📖 Koleksi Saya** — bisa diubah atau dihapus kapan saja."
+        "3. Kelola datanya di **📦 Data Web Scraping** atau **📖 Koleksi Saya** bisa diubah atau dihapus kapan saja."
     )
 
 
