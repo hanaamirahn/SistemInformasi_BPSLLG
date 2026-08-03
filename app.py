@@ -214,45 +214,100 @@ elif halaman == "📖 Koleksi Saya":
         st.dataframe(df, use_container_width=True, hide_index=True)
 
         st.markdown("---")
+
+        # ==========================
+        # Notifikasi
+        # ==========================
+        if st.session_state.get("update_koleksi_success", False):
+            st.success("✅ Data koleksi berhasil diperbarui.")
+            st.session_state["update_koleksi_success"] = False
+        
+        if st.session_state.get("delete_koleksi_success", False):
+            judul = st.session_state.get("judul_dihapus", "")
+            st.success(f"🗑️ Buku '{judul}' berhasil dihapus dari koleksi.")
+            st.session_state["delete_koleksi_success"] = False
+            st.session_state["judul_dihapus"] = ""
+        
+        # ==========================
+        # Edit / Hapus Buku
+        # ==========================
         st.subheader("✏️ Edit / Hapus Buku")
-
+        
         pilihan = st.selectbox(
-            "Pilih buku:", options=koleksi, format_func=lambda b: b["title"], key="pilih_koleksi",
+            "Pilih buku:",
+            options=koleksi,
+            format_func=lambda b: b["title"],
+            key="pilih_koleksi",
         )
-
+        
         col_img, col_form = st.columns([1, 3])
+        
         with col_img:
             if pilihan["cover_url"]:
                 st.image(pilihan["cover_url"], width=140)
             st.caption(f"Penulis: {pilihan['authors']}")
             st.caption(f"Tahun: {pilihan['published_year']}")
             st.caption(f"ISBN: {pilihan['isbn']}")
-
+        
         with col_form:
             with st.form("form_edit_koleksi"):
+        
                 status = st.selectbox(
                     "Status Bacaan",
                     ["Belum Dibaca", "Sedang Dibaca", "Selesai Dibaca"],
-                    index=["Belum Dibaca", "Sedang Dibaca", "Selesai Dibaca"].index(pilihan["status_baca"])
-                    if pilihan["status_baca"] in ["Belum Dibaca", "Sedang Dibaca", "Selesai Dibaca"] else 0,
+                    index=["Belum Dibaca", "Sedang Dibaca", "Selesai Dibaca"].index(
+                        pilihan["status_baca"]
+                    ) if pilihan["status_baca"] in [
+                        "Belum Dibaca",
+                        "Sedang Dibaca",
+                        "Selesai Dibaca"
+                    ] else 0,
                 )
-                rating = st.slider("Rating Pribadi", 0, 5, int(pilihan["rating_pribadi"] or 0))
-                catatan = st.text_area("Catatan Pribadi", value=pilihan["catatan_pribadi"] or "")
-
+        
+                rating = st.slider(
+                    "Rating Pribadi",
+                    0,
+                    5,
+                    int(pilihan["rating_pribadi"] or 0)
+                )
+        
+                catatan = st.text_area(
+                    "Catatan Pribadi",
+                    value=pilihan["catatan_pribadi"] or ""
+                )
+        
                 c1, c2 = st.columns(2)
+        
                 with c1:
-                    update_btn = st.form_submit_button("💾 Simpan Perubahan", type="primary")
+                    update_btn = st.form_submit_button(
+                        "💾 Simpan Perubahan",
+                        type="primary"
+                    )
+        
                 with c2:
-                    delete_btn = st.form_submit_button("🗑️ Hapus dari Koleksi")
-
+                    delete_btn = st.form_submit_button(
+                        "🗑️ Hapus dari Koleksi"
+                    )
+        
+                # Update
                 if update_btn:
-                    db.update_koleksi(pilihan["id"], status, rating, catatan)
-                    st.success("Perubahan berhasil disimpan.")
+                    db.update_koleksi(
+                        pilihan["id"],
+                        status,
+                        rating,
+                        catatan,
+                    )
+        
+                    st.session_state["update_koleksi_success"] = True
                     st.rerun()
-
+        
+                # Delete
                 if delete_btn:
+                    st.session_state["judul_dihapus"] = pilihan["title"]
+        
                     db.delete_koleksi(pilihan["id"])
-                    st.success(f"'{pilihan['title']}' dihapus dari koleksi.")
+        
+                    st.session_state["delete_koleksi_success"] = True
                     st.rerun()
 
 
