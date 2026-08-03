@@ -81,6 +81,4 @@ streamlit run app.py
 - Filesystem Streamlit Community Cloud bersifat sementara — `data.db` bisa
   ter-reset saat redeploy/reboot. Untuk data permanen, backup manual atau
   migrasi ke database eksternal (Supabase/Postgres).
-- Open Library API tidak mensyaratkan API key dan tidak memiliki kuota harian
-  seketat Google Books API — cocok untuk penggunaan wajar/demo tanpa perlu
-  daftar akun apa pun.
+- Open Library API tidak mensyaratkan API key dan tidak memiliki kuota harian.
