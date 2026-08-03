@@ -132,56 +132,61 @@ elif halaman == "📦 Data Web Scraping":
             hide_index=True,
         )
 
-    # Tampilkan notifikasi jika sebelumnya berhasil update
-    if st.session_state.get("update_scraping_success", False):
-      st.success("✅ Data berhasil diperbarui.")
-      st.session_state["update_scraping_success"] = False 
+# Tampilkan notifikasi jika sebelumnya berhasil update
+if st.session_state.get("update_scraping_success", False):
+    st.success("✅ Data berhasil diperbarui.")
+    st.session_state["update_scraping_success"] = False
 
-    if st.session_state.get("delete_scraping_success", False):
-      st.success("🗑️ Data berhasil dihapus.")
-      st.session_state["delete_scraping_success"] = False
+# Tampilkan notifikasi jika sebelumnya berhasil hapus
+if st.session_state.get("delete_scraping_success", False):
+    st.success("🗑️ Data berhasil dihapus.")
+    st.session_state["delete_scraping_success"] = False
 
-      st.subheader("✏️ Edit / Hapus Data")
-        pilihan = st.selectbox(
-            "Pilih data:", options=scraped, format_func=lambda b: b["title"], key="pilih_scraping",
+# ==============================
+# Edit / Hapus Data
+# ==============================
+st.subheader("✏️ Edit / Hapus Data")
+
+pilihan = st.selectbox(
+    "Pilih data:",
+    options=scraped,
+    format_func=lambda b: b["title"],
+    key="pilih_scraping",
+)
+
+with st.form("form_edit_scraping"):
+    new_judul = st.text_input("Judul", value=pilihan["title"])
+    new_harga = st.text_input("Harga", value=pilihan["price"])
+    new_rating = st.select_slider(
+        "Rating",
+        ["1", "2", "3", "4", "5"],
+        value=pilihan["rating"] if pilihan["rating"] in ["1", "2", "3", "4", "5"] else "5",
+    )
+    new_stok = st.text_input("Stok", value=pilihan["availability"])
+
+    c1, c2 = st.columns(2)
+
+    with c1:
+        update_btn = st.form_submit_button("💾 Update", type="primary")
+
+    with c2:
+        delete_btn = st.form_submit_button("🗑️ Hapus")
+
+    if update_btn:
+        db.update_scraped_book(
+            pilihan["id"],
+            new_judul,
+            new_harga,
+            new_rating,
+            new_stok,
         )
+        st.session_state["update_scraping_success"] = True
+        st.rerun()
 
-        with st.form("form_edit_scraping"):
-            new_judul = st.text_input("Judul", value=pilihan["title"])
-            new_harga = st.text_input("Harga", value=pilihan["price"])
-            new_rating = st.select_slider(
-                "Rating", ["1", "2", "3", "4", "5"],
-                value=pilihan["rating"] if pilihan["rating"] in ["1", "2", "3", "4", "5"] else "5",
-            )
-            new_stok = st.text_input("Stok", value=pilihan["availability"])
-
-            c1, c2 = st.columns(2)
-            with c1:
-                update_btn = st.form_submit_button("💾 Update", type="primary")
-            with c2:
-                delete_btn = st.form_submit_button("🗑️ Hapus")
-
-            if update_btn:
-                db.update_scraped_book(
-                    pilihan["id"],
-                    new_judul,
-                    new_harga,
-                    new_rating,
-                    new_stok
-                )
-            
-                # Simpan status berhasil update
-                st.session_state["update_scraping_success"] = True
-            
-                st.rerun()
-
-            if delete_btn:
-                db.delete_scraped_book(pilihan["id"])
-            
-                st.session_state["delete_scraping_success"] = True
-            
-                st.rerun()
-
+    if delete_btn:
+        db.delete_scraped_book(pilihan["id"])
+        st.session_state["delete_scraping_success"] = True
+        st.rerun()
 
 # =======================================================================
 # 🔍 FITUR 2a: Cari Buku (API)
