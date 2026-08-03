@@ -49,7 +49,7 @@ if halaman == "🏠 Dashboard":
     col2.metric("📖 Total Koleksi (API)", stats["total_koleksi"])
     col3.metric("⭐ Rata-rata Rating Koleksi", stats["avg_rating"] if stats["avg_rating"] else "-")
 
-   import plotly.express as px
+    import plotly.express as px
 
     st.markdown("---")
     st.subheader("Status Bacaan Koleksi Saya")
