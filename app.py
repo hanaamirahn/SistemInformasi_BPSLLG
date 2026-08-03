@@ -49,7 +49,7 @@ if halaman == "🏠 Dashboard":
     col2.metric("📖 Total Koleksi (API)", stats["total_koleksi"])
     col3.metric("⭐ Rata-rata Rating Koleksi", stats["avg_rating"] if stats["avg_rating"] else "-")
 
-    import matplotlib.pyplot as plt
+    import plotly.express as px
 
     st.markdown("---")
     st.subheader("Status Bacaan Koleksi Saya")
@@ -60,33 +60,40 @@ if halaman == "🏠 Dashboard":
             columns=["Status", "Jumlah"]
         )
     
-        fig, ax = plt.subplots(figsize=(6, 4))
+        fig = px.bar(
+            df_status,
+            x="Status",
+            y="Jumlah",
+            text="Jumlah",
+            color="Status",
+        )
     
-        ax.bar(df_status["Status"], df_status["Jumlah"], color="#4E79A7")
+        fig.update_layout(
+            xaxis_title="Status Bacaan",
+            yaxis_title="Jumlah Buku",
+            showlegend=False,
+            template="plotly_white",
+            height=400,
+            margin=dict(l=20, r=20, t=40, b=20),
+        )
     
-        ax.set_xlabel("Status Bacaan")
-        ax.set_ylabel("Jumlah Buku")
-        ax.set_title("Status Bacaan Koleksi Saya")
+        # Label horizontal
+        fig.update_xaxes(tickangle=0)
     
-        # Membuat tulisan di bawah grafik horizontal
-        plt.xticks(rotation=0, ha="center")
-    
-        plt.tight_layout()
-    
-        st.pyplot(fig)
+        st.plotly_chart(fig, use_container_width=True)
     
     else:
         st.info(
             "Belum ada buku di Koleksi Saya. Coba cari & simpan buku di menu **Cari Buku (API)**."
         )
-
-    st.markdown("---")
-    st.info(
-        "**Cara pakai website ini:**\n\n"
-        "1. Buka **📦 Data Web Scraping** untuk mengambil data buku otomatis dari internet (Fitur 1).\n"
-        "2. Buka **🔍 Cari Buku (API)** untuk mencari buku tertentu dan menyimpannya ke koleksi pribadi (Fitur 2).\n"
-        "3. Kelola datanya di **📦 Data Web Scraping** atau **📖 Koleksi Saya** — bisa diubah atau dihapus kapan saja."
-    )
+    
+        st.markdown("---")
+        st.info(
+            "**Cara pakai website ini:**\n\n"
+            "1. Buka **📦 Data Web Scraping** untuk mengambil data buku otomatis dari internet (Fitur 1).\n"
+            "2. Buka **🔍 Cari Buku (API)** untuk mencari buku tertentu dan menyimpannya ke koleksi pribadi (Fitur 2).\n"
+            "3. Kelola datanya di **📦 Data Web Scraping** atau **📖 Koleksi Saya** — bisa diubah atau dihapus kapan saja."
+        )
 
 
 # =======================================================================
