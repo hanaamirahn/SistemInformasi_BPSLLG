@@ -105,11 +105,32 @@ elif halaman == "📦 Data Web Scraping":
     st.markdown("---")
     st.subheader("📋 Semua Data Hasil Scraping")
     scraped = db.get_all_scraped_books()
-
+    
     if not scraped:
         st.info("Belum ada data. Silakan scraping atau tambah data manual di atas.")
     else:
-        st.dataframe(pd.DataFrame(scraped), use_container_width=True, hide_index=True)
+        df = pd.DataFrame(scraped)
+    
+        # Hapus id database
+        df = df.drop(columns=["id"], errors="ignore")
+    
+        # Tambahkan nomor urut
+        df.insert(0, "No", range(1, len(df) + 1))
+    
+        # Ganti nama kolom
+        df = df.rename(columns={
+            "title": "Judul",
+            "price": "Harga",
+            "rating": "Rating",
+            "availability": "Stok",
+            "source_url": "Sumber"
+        })
+    
+        st.dataframe(
+            df,
+            use_container_width=True,
+            hide_index=True,
+        )
 
         st.subheader("✏️ Edit / Hapus Data")
         pilihan = st.selectbox(
