@@ -1,434 +1,120 @@
-"""
-app.py
-Sistem Informasi Buku — 2 fitur CRUD yang terpisah, dibungkus 1 website.
+# Mengimpor library requests untuk mengakses API
+import requests
 
-Halaman:
-  🏠 Dashboard             -> ringkasan kedua fitur
-  📦 Data Web Scraping     -> FITUR 1: CRUD penuh data hasil scraping
-  🔍 Cari Buku (API)       -> FITUR 2a: cari buku lewat Open Library API
-  📖 Koleksi Saya          -> FITUR 2b: CRUD penuh atas buku yang disimpan dari API
-  ℹ️ Tentang               -> penjelasan proyek
-"""
+# URL endpoint Open Library Search API
+SEARCH_URL = "https://openlibrary.org/search.json"
 
-import streamlit as st
-import pandas as pd
-
-import db
-import scraper
-import api_client
-
-st.set_page_config(page_title="Sistem Informasi Buku", layout="wide")
-db.init_db()
-
-# ---------------------------------------------------------------------
-# Sidebar navigasi
-# ---------------------------------------------------------------------
-st.sidebar.title("📚 Sistem Informasi Buku")
-st.sidebar.caption("Katalog buku pribadi — sebagian data diambil otomatis dari internet, sebagian Anda cari & simpan sendiri.")
-halaman = st.sidebar.radio(
-    "Navigasi",
-    ["🏠 Dashboard", "📦 Data Web Scraping", "🔍 Cari Buku (API)", "📖 Koleksi Saya", "ℹ️ Tentang"],
-)
-
-stats = db.get_dashboard_stats()
-st.sidebar.markdown("---")
-st.sidebar.caption("Ringkasan Cepat")
-st.sidebar.write(f"📦 Data Scraping: **{stats['total_scraped']}**")
-st.sidebar.write(f"📖 Koleksi API: **{stats['total_koleksi']}**")
+# Header request sebagai identitas aplikasi
+HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; KatalogBukuApp/1.0)"}
 
 
-# =======================================================================
-# 🏠 DASHBOARD
-# =======================================================================
-if halaman == "🏠 Dashboard":
-    st.title("🏠 Dashboard")
-    st.write("Ringkasan dari kedua fitur sistem informasi ini.")
+def search_books_api(query, max_results=10):
+    # Fungsi untuk mencari buku berdasarkan kata kunci
+    debug_info = {"query": query}
 
-    col1, col2, col3 = st.columns(3)
-    col1.metric("📦 Total Data Scraping", stats["total_scraped"])
-    col2.metric("📖 Total Koleksi (API)", stats["total_koleksi"])
-    col3.metric("⭐ Rata-rata Rating Koleksi", stats["avg_rating"] if stats["avg_rating"] else "-")
+    # Validasi agar kata kunci tidak kosong
+    if not query.strip():
+        debug_info["error"] = "Kata kunci kosong"
+        return [], debug_info
 
-    import plotly.express as px
+    # Parameter yang dikirim ke API
+    params = {"q": query, "limit": max_results}
 
-    st.markdown("---")
-    st.subheader("Status Bacaan Koleksi Saya")
-    
-    if stats["status_breakdown"]:
-        df_status = pd.DataFrame(
-            list(stats["status_breakdown"].items()),
-            columns=["Status", "Jumlah"]
+    try:
+        # Mengirim request GET ke Open Library API
+        response = requests.get(
+            SEARCH_URL,
+            params=params,
+            headers=HEADERS,
+            timeout=10
         )
-    
-        fig = px.bar(
-            df_status,
-            x="Status",
-            y="Jumlah",
-            text="Jumlah",
-            color="Status",
-            color_discrete_sequence=px.colors.sequential.Blues,
+    except requests.RequestException as e:
+        # Menangani error jika koneksi ke API gagal
+        debug_info["error"] = f"Gagal terhubung ke API: {e}"
+        return [], debug_info
+
+    # Menyimpan informasi response untuk debugging
+    debug_info["status_code"] = response.status_code
+    debug_info["url_dipanggil"] = response.url
+
+    # Memastikan request berhasil (HTTP 200)
+    if response.status_code != 200:
+        debug_info["error"] = (
+            f"API mengembalikan status HTTP {response.status_code} (bukan 200)"
         )
-    
-        fig.update_layout(
-            xaxis_title="Status Bacaan",
-            yaxis_title="Jumlah Buku",
-            showlegend=False,
-            template="plotly_white",
-            height=400,
-            margin=dict(l=20, r=20, t=40, b=20),
-        )
-    
-        # Label horizontal
-        fig.update_xaxes(tickangle=0)
-    
-        st.plotly_chart(fig, use_container_width=True)
-    
-    else:
-        st.info(
-            "Belum ada buku di Koleksi Saya. Coba cari & simpan buku di menu **Cari Buku (API)**."
-        )
+        debug_info["response_snippet"] = response.text[:300]
+        return [], debug_info
 
-    st.markdown("---")
-    st.info(
-        "**Cara pakai website ini:**\n\n"
-        "1. Buka **📦 Data Web Scraping** untuk mengambil data buku otomatis dari internet (Fitur 1).\n"
-        "2. Buka **🔍 Cari Buku (API)** untuk mencari buku tertentu dan menyimpannya ke koleksi pribadi (Fitur 2).\n"
-        "3. Kelola datanya di **📦 Data Web Scraping** atau **📖 Koleksi Saya** — bisa diubah atau dihapus kapan saja."
-    )
+    try:
+        # Mengubah response menjadi format JSON
+        data = response.json()
+    except ValueError:
+        # Menangani jika response bukan JSON
+        debug_info["error"] = "Respons API bukan format JSON yang valid"
+        debug_info["response_snippet"] = response.text[:300]
+        return [], debug_info
 
+    # Mengambil daftar buku dari hasil pencarian
+    docs = data.get("docs", [])
 
-# =======================================================================
-# 📦 FITUR 1: Data Web Scraping (CRUD)
-# =======================================================================
-elif halaman == "📦 Data Web Scraping":
-    st.title("📦 Data Web Scraping")
-    st.caption("Fitur 1: Sistem CRUD untuk data hasil Web Scraping (sumber: books.toscrape.com)")
+    # Menyimpan jumlah total hasil pencarian
+    debug_info["total_ditemukan_api"] = data.get("numFound", 0)
 
-    with st.expander("🔄 Ambil Data Baru dari Internet", expanded=(stats["total_scraped"] == 0)):
-        st.write("Klik tombol di bawah untuk mengambil data buku secara otomatis.")
-        jumlah_halaman = st.slider("Jumlah halaman yang diambil", 1, 10, 1)
-        if st.button("📥 Scrape Sekarang", type="primary"):
-            with st.spinner("Mengambil data dari books.toscrape.com..."):
-                jumlah = scraper.scrape_books(pages=jumlah_halaman)
-            if jumlah > 0:
-                st.success(f"{jumlah} data buku baru berhasil disimpan.")
-                st.rerun()
-            else:
-                st.warning("Tidak ada data baru yang berhasil diambil.")
+    # List untuk menyimpan data buku yang telah diproses
+    results = []
 
-    with st.expander("➕ Tambah Data Manual"):
-        with st.form("form_tambah_scraping", clear_on_submit=True):
-            judul = st.text_input("Judul Buku")
-            harga = st.text_input("Harga (contoh: £51.77)")
-            rating = st.select_slider("Rating", ["1", "2", "3", "4", "5"], value="5")
-            stok = st.text_input("Status Stok", value="In stock")
-            simpan = st.form_submit_button("Simpan")
-            if simpan:
-                if judul:
-                    db.insert_scraped_book(judul, harga, rating, stok, source_url="manual")
-                    st.success("Data berhasil ditambahkan.")
-                    st.rerun()
-                else:
-                    st.warning("Judul wajib diisi.")
+    # Memproses setiap buku yang diperoleh dari API
+    for doc in docs[:max_results]:
 
-    st.markdown("---")
-    st.subheader("📋 Semua Data Hasil Scraping")
-    
-    scraped = db.get_all_scraped_books()
-    
-    # ==========================
-    # Notifikasi
-    # ==========================
-    if st.session_state.get("update_scraping_success", False):
-        st.success("✅ Data berhasil diperbarui.")
-        st.session_state["update_scraping_success"] = False
-    
-    if st.session_state.get("delete_scraping_success", False):
-        st.success("🗑️ Data berhasil dihapus.")
-        st.session_state["delete_scraping_success"] = False
-    
-    if not scraped:
-        st.info("Belum ada data. Silakan scraping atau tambah data manual di atas.")
-    else:
-        df = pd.DataFrame(scraped)
-    
-        # ==========================
-        # Search Bar
-        # ==========================
-        keyword = st.text_input(
-            "🔍 Cari judul buku",
-            placeholder="Masukkan judul buku..."
-        )
-    
-        if keyword:
-            df = df[df["title"].str.contains(keyword, case=False, na=False)]
-    
-        # ==========================
-        # Tabel Data
-        # ==========================
-        df = df.drop(columns=["id"], errors="ignore")
-    
-        df.insert(0, "No", range(1, len(df) + 1))
-    
-        df = df.rename(columns={
-            "title": "Judul",
-            "price": "Harga",
-            "rating": "Rating",
-            "availability": "Stok",
-            "source_url": "Sumber"
+        # Mengambil judul buku
+        title = doc.get("title", "Tanpa Judul")
+
+        # Mengambil nama penulis
+        authors = ", ".join(doc.get("author_name", [])) if doc.get("author_name") else "Tidak diketahui"
+
+        # Mengambil tahun pertama diterbitkan
+        published_year = str(doc.get("first_publish_year", "-"))
+
+        # Mengambil ISBN pertama jika tersedia
+        isbn_list = doc.get("isbn", [])
+        isbn = isbn_list[0] if isbn_list else "-"
+
+        # Membuat URL cover buku
+        cover_id = doc.get("cover_i")
+        cover_url = f"https://covers.openlibrary.org/b/id/{cover_id}-M.jpg" if cover_id else ""
+
+        # Mengambil deskripsi buku
+        first_sentence = doc.get("first_sentence")
+
+        if isinstance(first_sentence, list):
+            # Jika deskripsi berupa list, ambil elemen pertama
+            description = first_sentence[0] if first_sentence else "Tidak ada deskripsi."
+
+        elif first_sentence:
+            # Jika deskripsi berupa string
+            description = first_sentence
+
+        else:
+            # Jika tidak ada deskripsi, gunakan subject sebagai alternatif
+            subjects = doc.get("subject", [])
+            description = (
+                "Tema: " + ", ".join(subjects[:5])
+                if subjects else "Tidak ada deskripsi."
+            )
+
+        # Menyimpan data buku ke dalam list hasil
+        results.append({
+            "title": title,
+            "authors": authors,
+            "published_year": published_year,
+            "isbn": isbn,
+            "cover_url": cover_url,
+            "description": description,
         })
-    
-        st.caption(f"Menampilkan **{len(df)}** buku.")
-    
-        st.dataframe(
-            df,
-            use_container_width=True,
-            hide_index=True
-        )
-    
-        # ==========================
-        # Edit / Hapus
-        # ==========================
-        st.subheader("✏️ Edit / Hapus Data")
-    
-        pilihan = st.selectbox(
-            "Pilih data:",
-            options=scraped,
-            format_func=lambda b: b["title"],
-            key="pilih_scraping",
-        )
-    
-        with st.form("form_edit_scraping"):
-    
-            new_judul = st.text_input("Judul", value=pilihan["title"])
-            new_harga = st.text_input("Harga", value=pilihan["price"])
-    
-            new_rating = st.select_slider(
-                "Rating",
-                ["1", "2", "3", "4", "5"],
-                value=pilihan["rating"] if pilihan["rating"] in ["1", "2", "3", "4", "5"] else "5",
-            )
-    
-            new_stok = st.text_input(
-                "Stok",
-                value=pilihan["availability"]
-            )
-    
-            c1, c2 = st.columns(2)
-    
-            with c1:
-                update_btn = st.form_submit_button(
-                    "💾 Update",
-                    type="primary"
-                )
-    
-            with c2:
-                delete_btn = st.form_submit_button(
-                    "🗑️ Hapus"
-                )
-    
-            if update_btn:
-                db.update_scraped_book(
-                    pilihan["id"],
-                    new_judul,
-                    new_harga,
-                    new_rating,
-                    new_stok,
-                )
-    
-                st.session_state["update_scraping_success"] = True
-                st.rerun()
-    
-            if delete_btn:
-                db.delete_scraped_book(pilihan["id"])
-    
-                st.session_state["delete_scraping_success"] = True
-                st.rerun()
 
+    # Memberikan informasi jika tidak ada hasil pencarian
+    if not results:
+        debug_info["error"] = "Tidak ada buku yang cocok dengan kata kunci ini"
 
-# =======================================================================
-# 🔍 FITUR 2a: Cari Buku (API)
-# =======================================================================
-elif halaman == "🔍 Cari Buku (API)":
-    st.title("🔍 Cari Buku (API)")
-    st.caption("Fitur 2: Tarik data dari Open Library API, lalu simpan ke Koleksi Saya.")
-
-    query = st.text_input("Ketik judul buku yang ingin dicari", placeholder="contoh: Atomic Habits")
-    cari_btn = st.button("🔍 Cari", type="primary")
-
-    if cari_btn and query:
-        with st.spinner("Mencari buku..."):
-            hasil, debug_info = api_client.search_books_api(query)
-        st.session_state["hasil_pencarian"] = hasil
-        st.session_state["debug_pencarian"] = debug_info
-        if not hasil:
-            st.warning("Buku tidak ditemukan. Coba kata kunci lain.")
-            with st.expander("🔧 Info debug (buka ini kalau pencarian terus gagal)"):
-                st.json(debug_info)
-
-    hasil = st.session_state.get("hasil_pencarian", [])
-
-    if hasil:
-        st.markdown("---")
-        st.subheader(f"Hasil Pencarian ({len(hasil)} buku)")
-
-        for i, buku in enumerate(hasil):
-            col_img, col_info = st.columns([1, 4])
-            with col_img:
-                if buku["cover_url"]:
-                    st.image(buku["cover_url"], width=100)
-                else:
-                    st.write("📕")
-
-            with col_info:
-                st.markdown(f"**{buku['title']}**")
-                st.caption(f"Penulis: {buku['authors']} · Tahun: {buku['published_year']} · ISBN: {buku['isbn']}")
-                with st.expander("Lihat deskripsi"):
-                    st.write(buku["description"])
-
-                sudah_ada = db.is_already_saved(buku["isbn"], buku["title"])
-                if sudah_ada:
-                    st.caption("✅ Sudah ada di Koleksi Saya")
-                else:
-                    if st.button("💾 Simpan ke Koleksi", key=f"simpan_{i}"):
-                        db.insert_koleksi(
-                            buku["title"], buku["authors"], buku["published_year"],
-                            buku["isbn"], buku["cover_url"], buku["description"],
-                        )
-                        st.success(f"'{buku['title']}' berhasil disimpan ke Koleksi Saya.")
-                        st.rerun()
-            st.markdown("---")
-
-
-# =======================================================================
-# 📖 FITUR 2b: Koleksi Saya (CRUD)
-# =======================================================================
-elif halaman == "📖 Koleksi Saya":
-    st.title("📖 Koleksi Saya")
-    st.caption("Fitur 2: Sistem CRUD untuk data yang disimpan dari hasil pencarian API.")
-
-    koleksi = db.get_all_koleksi()
-
-    if not koleksi:
-        st.info("Koleksi Anda masih kosong. Buka **🔍 Cari Buku (API)** untuk menambah buku.")
-    else:
-        st.subheader("📋 Semua Buku di Koleksi")
-        df = pd.DataFrame(koleksi)[["title", "authors", "published_year", "status_baca", "rating_pribadi"]]
-        df.columns = ["Judul", "Penulis", "Tahun", "Status", "Rating"]
-        st.dataframe(df, use_container_width=True, hide_index=True)
-
-        st.markdown("---")
-        st.subheader("✏️ Edit / Hapus Buku")
-
-        pilihan = st.selectbox(
-            "Pilih buku:", options=koleksi, format_func=lambda b: b["title"], key="pilih_koleksi",
-        )
-
-        col_img, col_form = st.columns([1, 3])
-        with col_img:
-            if pilihan["cover_url"]:
-                st.image(pilihan["cover_url"], width=140)
-            st.caption(f"Penulis: {pilihan['authors']}")
-            st.caption(f"Tahun: {pilihan['published_year']}")
-            st.caption(f"ISBN: {pilihan['isbn']}")
-
-        with col_form:
-            with st.form("form_edit_koleksi"):
-                status = st.selectbox(
-                    "Status Bacaan",
-                    ["Belum Dibaca", "Sedang Dibaca", "Selesai Dibaca"],
-                    index=["Belum Dibaca", "Sedang Dibaca", "Selesai Dibaca"].index(pilihan["status_baca"])
-                    if pilihan["status_baca"] in ["Belum Dibaca", "Sedang Dibaca", "Selesai Dibaca"] else 0,
-                )
-                rating = st.slider("Rating Pribadi", 0, 5, int(pilihan["rating_pribadi"] or 0))
-                catatan = st.text_area("Catatan Pribadi", value=pilihan["catatan_pribadi"] or "")
-
-                c1, c2 = st.columns(2)
-                with c1:
-                    update_btn = st.form_submit_button("💾 Simpan Perubahan", type="primary")
-                with c2:
-                    delete_btn = st.form_submit_button("🗑️ Hapus dari Koleksi")
-
-                if update_btn:
-                    db.update_koleksi(pilihan["id"], status, rating, catatan)
-                    st.success("Perubahan berhasil disimpan.")
-                    st.rerun()
-
-                if delete_btn:
-                    db.delete_koleksi(pilihan["id"])
-                    st.success(f"'{pilihan['title']}' dihapus dari koleksi.")
-                    st.rerun()
-
-
-# =======================================================================
-# ℹ️ TENTANG
-# =======================================================================
-elif halaman == "ℹ️ Tentang":
-    st.title("ℹ️ Tentang Website Ini")
-
-    st.markdown("""
-    Website ini dibuat sebagai sarana pencatatan buku secara pribadi. Ide dasarnya
-    sederhana: setiap buku yang menarik perhatian dapat dikumpulkan di satu tempat,
-    kemudian diberi catatan, penilaian, atau diperbarui sewaktu-waktu sesuai kebutuhan.
-
-    Data buku yang tersimpan berasal dari dua sumber yang sengaja dibedakan, karena
-    masing-masing memiliki tujuan yang berbeda pula.
-    """)
-
-    st.markdown("---")
-
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown("""
-        **📦 Sumber pertama: pengambilan data otomatis**
-
-        Bagian ini mengambil data dari sebuah situs contoh toko buku
-        ([books.toscrape.com](https://books.toscrape.com)) secara otomatis —
-        meliputi judul, harga, penilaian, dan status ketersediaannya. Metode ini
-        cocok digunakan apabila dibutuhkan data dalam jumlah banyak dalam waktu singkat.
-        """)
-    with col2:
-        st.markdown("""
-        **🔍 Sumber kedua: pencarian melalui API**
-
-        Berbeda dengan yang pertama, di sini pengguna sendiri yang menentukan buku
-        apa yang ingin dicari, misalnya "Atomic Habits". Sistem kemudian meminta
-        data tersebut dari Open Library, dan pengguna dapat memilih untuk
-        menyimpannya sebagai koleksi pribadi.
-        """)
-
-    st.markdown("---")
-
-    st.markdown("**Beberapa hal yang perlu diketahui sebelum menggunakan website ini:**")
-    st.info(
-        "Website ini tidak menyediakan fasilitas jual beli buku. Selain itu, "
-        "data yang tersimpan bersifat sementara dan dapat hilang apabila server "
-        "hosting mengalami pemulihan ulang. Dengan kata lain, website ini lebih "
-        "tepat dipandang sebagai catatan pribadi sederhana, bukan sistem yang "
-        "dirancang untuk penyimpanan data jangka panjang."
-    )
-
-    st.markdown("""
-    Secara umum, penggunaannya dapat dimulai dari halaman **Data Web Scraping**
-    apabila ingin mengambil data secara otomatis, atau halaman **Cari Buku (API)**
-    apabila ingin mencari judul tertentu. Data yang sudah tersimpan dapat diubah
-    maupun dihapus langsung pada halaman masing-masing.
-    """)
-
-    st.markdown("---")
-
-    with st.expander("🛠️ Penjelasan teknis bagi yang ingin mengetahui lebih lanjut"):
-        st.markdown("""
-        Proyek ini pada mulanya dikembangkan untuk memenuhi dua ketentuan utama,
-        yaitu tersedianya sistem CRUD untuk data hasil web scraping dan sistem
-        CRUD terpisah untuk data hasil pengambilan API. Ketentuan pertama
-        diwujudkan pada halaman **Data Web Scraping**, sedangkan ketentuan kedua
-        pada halaman **Koleksi Saya**.
-
-        Dari segi teknis, aplikasi ini dibangun menggunakan bahasa pemrograman
-        Python dengan kerangka kerja Streamlit. Data disimpan dalam basis data
-        SQLite, proses pengambilan data dari situs web memanfaatkan pustaka
-        requests dan BeautifulSoup4, sedangkan data API diperoleh dari Open
-        Library yang bersifat gratis dan tidak memerlukan kunci API. Aplikasi
-        ini kemudian dihosting melalui Streamlit Community Cloud.
-        """)
+    # Mengembalikan data buku beserta informasi debugging
+    return results, debug_info
